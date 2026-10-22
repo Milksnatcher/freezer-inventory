@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Pantry",
+    "slug": "pantry",
+    "scheme": "pantry",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scan barcodes and labels"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Save printable labels"
+        }
+      ],
+      "expo-notifications"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.yourname.pantry",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.yourname.pantry"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "Pantry",
+      "shortName": "Pantry",
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/pantry"
+    },
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light"
+  }
+}

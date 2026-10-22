@@ -1,0 +1,51 @@
+{
+  "name": "pantry",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit",
+    "build:web": "expo export -p web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/inter": "*",
+    "@expo-google-fonts/manrope": "*",
+    "@expo/metro-runtime": "*",
+    "@react-native-async-storage/async-storage": "*",
+    "@react-native-community/netinfo": "*",
+    "@supabase/supabase-js": "^2.45.0",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
+    "expo": "~54.0.0",
+    "expo-camera": "*",
+    "expo-constants": "*",
+    "expo-crypto": "*",
+    "expo-font": "*",
+    "expo-linking": "*",
+    "expo-media-library": "*",
+    "expo-notifications": "*",
+    "expo-router": "*",
+    "expo-sharing": "*",
+    "expo-speech": "*",
+    "expo-status-bar": "*",
+    "html2canvas": "^1.4.1",
+    "lucide-react-native": "*",
+    "react": "*",
+    "react-dom": "*",
+    "react-native": "*",
+    "react-native-qrcode-svg": "^6.3.0",
+    "react-native-safe-area-context": "*",
+    "react-native-screens": "*",
+    "react-native-svg": "*",
+    "react-native-url-polyfill": "^2.0.0",
+    "react-native-view-shot": "*",
+    "react-native-web": "*"
+  },
+  "devDependencies": {
+    "@types/react": "*",
+    "typescript": "*"
+  }
+}
