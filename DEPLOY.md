@@ -18,7 +18,7 @@ Time: about an hour. Cost: Supabase and GitHub free; Anthropic API is pay-as-you
 ## Part 2: The AI function (label reading, categories, dinner ideas)
 
 6. Get an Anthropic API key: console.anthropic.com -> sign in -> **Billing**: add a small credit (e.g. $5) -> **API Keys -> Create key**. Copy it (starts `sk-ant-`).
-7. In Supabase: **Edge Functions -> Deploy a new function -> Via Editor**. Name it exactly `ai`. Delete the sample code, paste all of `supabase/functions/ai/index.ts`, click **Deploy**.
+7. In Supabase: **Edge Functions -> Deploy a new function -> Via Editor**. The app expects the name `rapid-action` (if yours has a different name, change `AI_FUNCTION` in `src/lib/config.ts` to match). Delete the sample code, paste all of `supabase/functions/rapid-action/index.ts`, click **Deploy**.
 8. **Edge Functions -> Secrets** (or "Manage secrets"): add `ANTHROPIC_API_KEY` = your key.
 
 (Without steps 6-8 the app still works for manual add/use; scanning photos, food types and dinner ideas will not.)
@@ -50,7 +50,7 @@ The app is already configured for a repo named `freezer-inventory`.
 22. Smoke test: Add an item by hand -> check it on the other phone -> Use it and shade a quarter -> scan a barcode -> make a label.
 
 ## Updating later
-Replace the changed files in the MGit repo folder, then Status -> stage -> Commit -> Push. The site redeploys itself. If a release changes the database, run the new SQL in the Supabase SQL Editor; if it changes the AI function, paste the new `index.ts` over `ai` and Deploy.
+Replace the changed files in the MGit repo folder, then Status -> stage -> Commit -> Push. The site redeploys itself. If a release changes the database, run the new SQL in the Supabase SQL Editor; if it changes the AI function, paste the new `index.ts` over `rapid-action` and Deploy.
 
 ## If something goes wrong
 - **Actions build fails:** open the failed run, copy the red error and send it to Claude.
@@ -58,5 +58,5 @@ Replace the changed files in the MGit repo folder, then Status -> stage -> Commi
 - **Push rejected / authentication failed:** the token needs the `repo` and `workflow` scopes, and must be pasted as the password.
 - **`.github` folder missing on GitHub:** hidden files were not copied; copy it across and push again.
 - **"Invalid API key" / cannot sign in:** a secret has a typo or you used the wrong key. Fix it, then re-run the workflow (secrets are baked in at build time).
-- **Scanning or dinner ideas fail:** check the function is named `ai`, the `ANTHROPIC_API_KEY` secret is set, and your Anthropic account has credit.
+- **Scanning or dinner ideas fail:** check the function name in Supabase matches `AI_FUNCTION` in `src/lib/config.ts` (`rapid-action`), the `ANTHROPIC_API_KEY` secret is set, and your Anthropic account has credit.
 - **Supabase project paused** (free plan, a week of no use): open the dashboard and click Restore.

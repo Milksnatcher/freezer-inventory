@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { supabase } from './supabase';
 import { enqueue } from './outbox';
+import { AI_FUNCTION } from './config';
 
 export type Product = { id: string; name: string; brand: string | null; category: string | null; subcategory: string | null; barcode: string | null };
 const PCOLS = 'id,name,brand,category,subcategory,barcode';
@@ -33,7 +34,7 @@ export async function addItems(o: { householdId: string; userId: string; locatio
 
 // AI food type + subcategory (best effort, needs connection). The update is queued so it runs after the product insert.
 export async function categorize(productId: string, name: string) {
-  const { data, error } = await supabase.functions.invoke('ai', { body: { task: 'categorize', items: [name] } });
+  const { data, error } = await supabase.functions.invoke(AI_FUNCTION, { body: { task: 'categorize', items: [name] } });
   if (error || !data) return;
   const r: any = data[name] ?? Object.values(data)[0];
   if (r?.category) await enqueue({ table: 'products', kind: 'update', data: { category: r.category, subcategory: r.subcategory ?? null }, match: { id: productId } });
@@ -79,7 +80,7 @@ export async function resolveBarcode(code: string, householdId: string, create: 
 // AI label reading. We pass known product names so the AI can match instead of creating duplicates.
 export async function resolvePhoto(b64: string, householdId: string, barcode: string | undefined, create: boolean): Promise<Product | null> {
   const { data: names } = await supabase.from('products').select('name').limit(300);
-  const { data: ai, error } = await supabase.functions.invoke('ai', { body: { task: 'label', imageBase64: b64, candidates: (names ?? []).map(n => n.name) } });
+  const { data: ai, error } = await supabase.functions.invoke(AI_FUNCTION, { body: { task: 'label', imageBase64: b64, candidates: (names ?? []).map(n => n.name) } });
   if (error || !ai?.name) return null;
   const existing = await findProductByName(ai.match || ai.name);
   if (existing) { attachBarcode(existing, barcode); return existing; }

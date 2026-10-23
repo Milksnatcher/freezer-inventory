@@ -12,12 +12,12 @@ app/                      expo-router screens
   settings.tsx            locations CRUD, logs (undo = rpc undo_log), notifications toggle, labels
 src/lib/                  supabase.ts, outbox.ts (offline queue), freshness.ts, openfoodfacts.ts, ai.ts
 src/components/           QuarterPie.tsx, FreshDot.tsx, LabelMaker.tsx
-supabase/                 schema.sql, functions/ai (Anthropic proxy)
+supabase/                 schema.sql, functions/rapid-action (Anthropic proxy)
 ```
 
 ## Key flows
 - **Barcode:** expo-camera -> products table (cached) -> Open Food Facts
-  `https://world.openfoodfacts.org/api/v2/product/{code}.json` -> else photo -> `ai` function (task=label) -> insert into products with barcode so next scan is instant.
+  `https://world.openfoodfacts.org/api/v2/product/{code}.json` -> else photo -> `rapid-action` function (task=label) -> insert into products with barcode so next scan is instant.
 - **Add xN:** insert N inventory_items rows + one `logs` row (payload.item_ids).
 - **Use:** set quarters_left; at 0 set consumed_at (trigger adds to shopping list if below threshold).
 - **Delete location:** FK `on delete set null` => items show as "No Location".

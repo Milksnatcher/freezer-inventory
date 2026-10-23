@@ -1,5 +1,5 @@
 // Edge Function keeps the Anthropic key server-side.
-// Deploy: supabase functions deploy ai ; supabase secrets set ANTHROPIC_API_KEY=...
+// Deploy: supabase functions deploy rapid-action ; supabase secrets set ANTHROPIC_API_KEY=...
 import Anthropic from 'npm:@anthropic-ai/sdk';
 const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 const MODEL = 'claude-sonnet-4-6';

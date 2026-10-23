@@ -4,6 +4,7 @@ import { Text, Button, Switch } from '../src/ui';
 import { supabase } from '../src/lib/supabase';
 import { notify } from '../src/lib/notify';
 import { shadow } from '../src/theme';
+import { AI_FUNCTION } from '../src/lib/config';
 
 type Recipe = { title: string; minutes?: number; uses: string[]; steps: string[] };
 const rank = { green: 0, amber: 1, red: 2 } as const;
@@ -29,7 +30,7 @@ export default function Dinner() {
       if (!all.length) return setMsg('Your inventory is empty.');
       const old = all.filter(x => x.age_bracket !== 'green');
       if (oldOnly && !old.length) return setMsg('Nothing is in the amber or red zone yet. Turn the toggle off to use everything.');
-      const { data: out, error } = await supabase.functions.invoke('ai', {
+      const { data: out, error } = await supabase.functions.invoke(AI_FUNCTION, {
         body: { task: 'recipes', preferOld: oldOnly, items: oldOnly ? old : all, others: oldOnly ? all.filter(x => x.age_bracket === 'green').map(x => x.name) : [] },
       });
       if (error) return notify('Could not get ideas', error.message);

@@ -27,7 +27,7 @@ npm i -g supabase
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-supabase functions deploy ai
+supabase functions deploy rapid-action
 ```
 Anthropic API usage is billed separately from Claude chat plans (console.anthropic.com).
 The function is protected by Supabase JWT verification by default, so only signed-in users can call it.
@@ -73,14 +73,14 @@ Notes: free GitHub accounts need a **public** repo for Pages (fine: no secrets a
 ## Updates
 - **Phase 2 (done):** manual Add (autofill, quantity), Use (quarter pie, oldest/opened first), item editor (location, age date), food-type grouping with sub-groups (Meat › Chicken).
   Already ran an older `schema.sql`? Run `supabase/migrations/003_phase2.sql` once. Fresh installs don't need it.
-- Redeploy the AI function after pulling: `supabase functions deploy ai`.
+- Redeploy the AI function after pulling: `supabase functions deploy rapid-action`.
 - **Phase 3 (done):** Settings now has locations add/delete (items fall back to "No Location"), recent logs with Undo, and the notifications on/off switch (the switch is saved; the notifications themselves arrive in phase 8). Undoing a "use" now also removes the shopping entry it created. Already ran an older schema? Also run `supabase/migrations/004_phase3.sql`.
 - **Phase 4 (done):** barcode scanning and AI label photos in both Add and Use. Lookup order: your own products -> Open Food Facts -> AI photo. Barcodes are saved against the product, so the next scan is instant. The AI is given your existing product names so it matches rather than duplicating.
-  After pulling: `npm install` (adds ZXing for web scanning) and `supabase functions deploy ai`. Phones need camera permission; browsers need HTTPS (GitHub Pages has it).
+  After pulling: `npm install` (adds ZXing for web scanning) and `supabase functions deploy rapid-action`. Phones need camera permission; browsers need HTTPS (GitHub Pages has it).
 - **Phase 5 (done):** shopping list (live-synced between phones, add manually, remove individually, low-stock items arrive automatically) and "Play to Alexa" voice upload. Nothing to deploy or migrate.
 - **Phase 6 (done):** homemade-food labels. Settings or Add -> "Make a label": creates the inventory item with a unique code (PM-XXXXXXXX), draws a label (name, date, QR) and saves it as PNG. Scanning that QR on the Use screen opens the item.
   Android/iOS save to a photo album called **PantryLabels** (MacroDroid: trigger "new file in folder" on `Pictures/PantryLabels`, then send to your label printer app). On the web version the PNG downloads to your Downloads folder. Label size is `LABEL_W`/`LABEL_H` in `app/label.tsx`.
   After pulling: `npm install` (adds html2canvas for web and expo-sharing).
-- **Phase 7 (done):** What's for Dinner (with the "Prioritise older items" toggle, which gives the AI only amber/red stock as its starting point), Stats (most used, average time in storage, red-zone summary), and Settings -> "Staples and minimum stock". Redeploy the AI function: `supabase functions deploy ai`. No migration.
+- **Phase 7 (done):** What's for Dinner (with the "Prioritise older items" toggle, which gives the AI only amber/red stock as its starting point), Stats (most used, average time in storage, red-zone summary), and Settings -> "Staples and minimum stock". Redeploy the AI function: `supabase functions deploy rapid-action`. No migration.
 - **Look and feel:** restyled to match the Gut Log app: sage/sky/amber/clay palette, Manrope + Inter fonts, rounded white cards, big coloured home tiles, bottom navigation bar, new quarter-ring widget and pantry icons. The notifications switch is hidden. After pulling: `npm install` then `npx expo install --fix`. Colours live in `src/theme.ts`; shared components in `src/ui.tsx`.
 - Known gap: lists are read from Supabase live, so items added while offline appear after they sync (writes are queued safely).
