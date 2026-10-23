@@ -26,7 +26,6 @@
     "expo-font": "*",
     "expo-linking": "*",
     "expo-media-library": "*",
-    "expo-notifications": "*",
     "expo-router": "*",
     "expo-sharing": "*",
     "expo-speech": "*",

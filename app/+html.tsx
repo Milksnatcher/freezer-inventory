@@ -1,7 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
-// Web-only root HTML: PWA tags + service worker registration (paths assume baseUrl "/pantry").
+// Web-only root HTML: PWA tags + service worker registration (paths assume baseUrl "/freezer-inventory").
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="en">

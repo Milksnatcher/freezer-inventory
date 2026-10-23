@@ -1,5 +1,7 @@
 # Pantry: shared freezer & pantry inventory
 
+**New here? Follow `DEPLOY.md` for the step-by-step setup.**
+
 React Native (Expo) + Supabase. See `STRUCTURE.md` for the full architecture.
 
 ## Recommended build order
@@ -60,7 +62,7 @@ Pairing: first phone taps **Create household**; second signs up and enters the i
 
 ## Alternative: host as a web app on GitHub Pages (no app stores, no EAS)
 The same code runs as a PWA. Open the URL on each phone, then "Add to Home Screen".
-1. Rename `baseUrl` in `app.json` (and the `/pantry/` paths in `app/+html.tsx`) to match your repo name.
+1. `baseUrl` in `app.json` and the paths in `app/+html.tsx` are already set to the repo name `freezer-inventory`; change them if you rename the repo.
 2. Repo Settings -> Secrets -> Actions: add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 3. Settings -> Pages -> Source: **GitHub Actions**. Push to `main`. Your app appears at `https://USERNAME.github.io/REPO/`.
 4. Supabase -> Authentication -> URL Configuration: add that URL as Site URL.

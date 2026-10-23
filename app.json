@@ -18,8 +18,7 @@
         {
           "savePhotosPermission": "Save printable labels"
         }
-      ],
-      "expo-notifications"
+      ]
     ],
     "ios": {
       "bundleIdentifier": "com.yourname.pantry",
