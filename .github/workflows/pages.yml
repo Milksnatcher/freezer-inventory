@@ -7,12 +7,15 @@ concurrency: { group: pages, cancel-in-progress: true }
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      npm_config_legacy_peer_deps: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm install
       - run: npx expo install --fix
+        continue-on-error: true
       - run: npx expo export -p web
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
