@@ -1,36 +1,37 @@
 import React from 'react';
 import { View, ScrollView, Pressable } from 'react-native';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Plus, Minus, Snowflake, ShoppingCart, ArrowRight, ChefHat, BarChart3, Settings as Cog } from 'lucide-react-native';
-import { Text, Card } from '../src/ui';
+import { Text } from '../src/ui';
 import { c, radius, shadow } from '../src/theme';
 
+// Plain Pressable + router (not Link asChild): the solid background colour must always apply.
 function Tile({ href, bg, Icon, title, sub }: { href: string; bg: string; Icon: any; title: string; sub: string }) {
+  const router = useRouter();
   return (
-    <Link href={href as any} asChild>
-      <Pressable style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: bg, borderRadius: radius.xl2, padding: 22, ...shadow.card, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
-        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}><Icon size={24} color="#fff" /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{title}</Text>
-          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }}>{sub}</Text>
-        </View>
-        <ArrowRight size={20} color="rgba(255,255,255,0.7)" />
-      </Pressable>
-    </Link>
+    <Pressable onPress={() => router.push(href as any)}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: bg, borderRadius: radius.xl2, padding: 22, ...shadow.card, opacity: pressed ? 0.9 : 1 })}>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}><Icon size={24} color="#fff" /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>{title}</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>{sub}</Text>
+      </View>
+      <ArrowRight size={20} color="rgba(255,255,255,0.8)" />
+    </Pressable>
   );
 }
 function LinkRow({ href, Icon, title, sub }: { href: string; Icon: any; title: string; sub: string }) {
+  const router = useRouter();
   return (
-    <Link href={href as any} asChild>
-      <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: radius.xl2, borderWidth: 1, borderColor: c.ink[100], padding: 16, ...shadow.soft }}>
-        <Icon size={20} color={c.sage[600]} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '700', color: c.ink[800] }}>{title}</Text>
-          <Text style={{ fontSize: 13, color: c.ink[400] }}>{sub}</Text>
-        </View>
-        <ArrowRight size={18} color={c.ink[300]} />
-      </Pressable>
-    </Link>
+    <Pressable onPress={() => router.push(href as any)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: radius.xl2, borderWidth: 1, borderColor: c.ink[100], padding: 16, ...shadow.soft }}>
+      <Icon size={20} color={c.sage[600]} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: '700', color: c.ink[800] }}>{title}</Text>
+        <Text style={{ fontSize: 13, color: c.ink[400] }}>{sub}</Text>
+      </View>
+      <ArrowRight size={18} color={c.ink[300]} />
+    </Pressable>
   );
 }
 

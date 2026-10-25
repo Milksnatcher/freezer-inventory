@@ -77,11 +77,19 @@ export async function resolveBarcode(code: string, householdId: string, create: 
   return createProduct({ householdId, name: off.name, brand: off.brand, barcode: code, source: 'openfoodfacts' });
 }
 
+export const aiDebug = { error: '' };   // last AI problem, shown in the scanner hint
+async function errText(error: any): Promise<string> {
+  try { const b = await error.context.json(); return String(b.error ?? JSON.stringify(b)).slice(0, 160); }
+  catch { return String(error?.message ?? error).slice(0, 160); }
+}
+
 // AI label reading. We pass known product names so the AI can match instead of creating duplicates.
 export async function resolvePhoto(b64: string, householdId: string, barcode: string | undefined, create: boolean): Promise<Product | null> {
   const { data: names } = await supabase.from('products').select('name').limit(300);
+  aiDebug.error = '';
   const { data: ai, error } = await supabase.functions.invoke(AI_FUNCTION, { body: { task: 'label', imageBase64: b64, candidates: (names ?? []).map(n => n.name) } });
-  if (error || !ai?.name) return null;
+  if (error) { aiDebug.error = await errText(error); return null; }
+  if (!ai?.name) { aiDebug.error = ai?.error ?? 'The AI reply could not be understood'; return null; }
   const existing = await findProductByName(ai.match || ai.name);
   if (existing) { attachBarcode(existing, barcode); return existing; }
   if (!create) return null;

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '../src/lib/session';
-import { addItems, fetchLocations, searchProducts, resolveBarcode, resolvePhoto, Loc, Product } from '../src/lib/data';
+import { addItems, aiDebug, fetchLocations, searchProducts, resolveBarcode, resolvePhoto, Loc, Product } from '../src/lib/data';
 import { notify } from '../src/lib/notify';
 import Scanner from '../src/components/Scanner';
 import { Text, Button, TextInput, Card, Label, Chip } from '../src/ui';
@@ -28,7 +28,7 @@ export default function Add() {
   const onPhoto = async (b64: string) => {
     setHint('Reading label…');
     const p = await resolvePhoto(b64, householdId!, bc, true);
-    if (p) fill(p); else setHint('Could not read that. Cancel and type it in, or try another photo.');
+    if (p) fill(p); else setHint(`Could not read that${aiDebug.error ? ` (${aiDebug.error})` : ''}. Try another photo, or cancel and type it in.`);
   };
   if (scanning) return <Scanner hint={hint} onBarcode={onBarcode} onPhoto={onPhoto} onCancel={() => { setScanning(false); setHint(''); }} />;
 

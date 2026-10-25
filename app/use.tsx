@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, Pressable } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
-import { fetchLocations, findByLabel, resolveBarcode, resolvePhoto, Product } from '../src/lib/data';
+import { aiDebug, fetchLocations, findByLabel, resolveBarcode, resolvePhoto, Product } from '../src/lib/data';
 import { FRESH_COLORS } from '../src/lib/freshness';
 import { useApp } from '../src/lib/session';
 import { notify } from '../src/lib/notify';
@@ -44,7 +44,7 @@ export default function Use() {
   const onPhoto = async (b64: string) => {
     setHint('Reading label…');
     const p = await resolvePhoto(b64, householdId!, undefined, false);
-    if (p) openStock(p); else setHint('No match in your inventory. Cancel and search by name.');
+    if (p) openStock(p); else setHint(aiDebug.error ? `Could not read that (${aiDebug.error}). Try again.` : 'No match in your inventory. Cancel and search by name.');
   };
   if (scanning) return <Scanner hint={hint} onBarcode={onBarcode} onPhoto={onPhoto} onCancel={() => { setScanning(false); setHint(''); }} />;
 
