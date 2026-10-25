@@ -101,3 +101,21 @@ export async function findByLabel(code: string): Promise<{ id: string } | null> 
   const { data } = await supabase.from('inventory_view').select('id').eq('label_code', code).maybeSingle();
   return data ?? null;
 }
+
+// ---------- AI food-type grouping for products that have none yet ----------
+export const FOOD_CATEGORIES = ['Meat', 'Fish & Seafood', 'Vegetables', 'Fruit', 'Dairy & Eggs', 'Bread & Bakery', 'Pasta, Rice & Grains', 'Ready Meals', 'Sauces & Condiments', 'Tins & Jars', 'Snacks & Sweets', 'Drinks', 'Baking', 'Other'];
+
+export async function categorizeMissing(limit = 40): Promise<{ done: number; error?: string }> {
+  const { data: rows } = await supabase.from('products').select('id,name').is('category', null).limit(limit);
+  if (!rows?.length) return { done: 0 };
+  const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
+    body: { task: 'categorize', items: { use_one_of_these_categories: FOOD_CATEGORIES, subcategory_hint: 'specific, e.g. Chicken, Beef, Mince, Salmon, Peas, Cheese', names: rows.map(r => r.name) } },
+  });
+  if (error) return { done: 0, error: await errText(error) };
+  let done = 0;
+  for (const r of rows) {
+    const x = data?.[r.name];
+    if (x?.category) { await supabase.from('products').update({ category: x.category, subcategory: x.subcategory ?? null }).eq('id', r.id); done++; }
+  }
+  return { done, error: done ? undefined : 'The AI reply could not be understood' };
+}

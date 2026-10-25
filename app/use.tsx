@@ -17,7 +17,10 @@ export default function Use() {
   const [q, setQ] = useState(''); const [rows, setRows] = useState<any[]>([]); const [locs, setLocs] = useState<Record<string, string>>({});
   const [scanning, setScanning] = useState(false); const [hint, setHint] = useState('');
   const load = React.useCallback(async () => {
-    const { data } = await supabase.from('inventory_view').select('*').ilike('name', `%${q}%`).limit(60);
+    const term = q.replace(/[,()%*]/g, ' ').trim();   // search name, food type or group
+    let qb = supabase.from('inventory_view').select('*');
+    if (term) qb = qb.or(`name.ilike.%${term}%,category.ilike.%${term}%,subcategory.ilike.%${term}%`);
+    const { data } = await qb.limit(60);
     setRows((data ?? []).sort(oldestFirst));
   }, [q]);
   useEffect(() => { fetchLocations().then(l => setLocs(Object.fromEntries(l.map(x => [x.id, x.name])))); }, []);
@@ -51,7 +54,7 @@ export default function Use() {
   return (
     <View style={{ flex: 1, paddingHorizontal: 16, gap: 10 }}>
       <Button tone="sky" title="Scan barcode / photo of label" onPress={() => setScanning(true)} />
-      <TextInput placeholder="…or search what you used" value={q} onChangeText={setQ} style={{ fontSize: 17 }} />
+      <TextInput placeholder="…or search by name or type (e.g. meat)" value={q} onChangeText={setQ} style={{ fontSize: 17 }} />
       <FlatList data={rows} keyExtractor={r => r.id} contentContainerStyle={{ paddingBottom: 24 }} renderItem={({ item }) => (
         <Pressable onPress={() => router.push({ pathname: '/item', params: { id: item.id } })}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 8, ...shadow.soft }}>
