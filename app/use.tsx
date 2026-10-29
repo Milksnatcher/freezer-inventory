@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, Pressable } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
-import { aiDebug, fetchLocations, findByLabel, resolveBarcode, resolvePhoto, Product } from '../src/lib/data';
+import { aiDebug, fetchLocations, findByLabel, fmtUnits, resolveBarcode, resolvePhoto, stockTotals, Product } from '../src/lib/data';
 import { FRESH_COLORS } from '../src/lib/freshness';
 import { useApp } from '../src/lib/session';
-import { notify } from '../src/lib/notify';
+import { confirm, notify } from '../src/lib/notify';
 import Scanner from '../src/components/Scanner';
-import { Text, TextInput, Button, MiniQuarters } from '../src/ui';
+import { unlockBeep } from '../src/lib/beep';
+import { Text, TextInput, Button, MiniQuarters, OpenedTag } from '../src/ui';
 import { c, shadow } from '../src/theme';
 
 const oldestFirst = (a: any, b: any) => a.quarters_left - b.quarters_left || +new Date(a.age_date) - +new Date(b.age_date);
@@ -49,19 +50,34 @@ export default function Use() {
     const p = await resolvePhoto(b64, householdId!, undefined, false);
     if (p) openStock(p); else setHint(aiDebug.error ? `Could not read that (${aiDebug.error}). Try again.` : 'No match in your inventory. Cancel and search by name.');
   };
+  const tot = stockTotals(rows);
+  // tapping a full pack while an opened one exists: offer the opened one first
+  const pick = async (item: any) => {
+    const opened = item.quarters_left === 4 ? rows.find(r => r.product_id === item.product_id && r.quarters_left < 4) : undefined;
+    if (opened) {
+      const useOpened = await confirm('Use the opened one first?', `You have an opened ${item.name} (${opened.quarters_left}/4 left).\nOK = use the opened one. Cancel = use the full one.`);
+      return router.push({ pathname: '/item', params: { id: useOpened ? opened.id : item.id } });
+    }
+    router.push({ pathname: '/item', params: { id: item.id } });
+  };
   if (scanning) return <Scanner hint={hint} onBarcode={onBarcode} onPhoto={onPhoto} onCancel={() => { setScanning(false); setHint(''); }} />;
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 16, gap: 10 }}>
-      <Button tone="sky" title="Scan barcode / photo of label" onPress={() => setScanning(true)} />
+      <Button tone="sky" title="Scan barcode / photo of label" onPress={() => { unlockBeep(); setScanning(true); }} />
       <TextInput placeholder="…or search by name or type (e.g. meat)" value={q} onChangeText={setQ} style={{ fontSize: 17 }} />
       <FlatList data={rows} keyExtractor={r => r.id} contentContainerStyle={{ paddingBottom: 24 }} renderItem={({ item }) => (
-        <Pressable onPress={() => router.push({ pathname: '/item', params: { id: item.id } })}
+        <Pressable onPress={() => pick(item)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 8, ...shadow.soft }}>
           <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: FRESH_COLORS[item.freshness as 'green' | 'amber' | 'red'] }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '500' }}>{item.name}</Text>
-            <Text style={{ fontSize: 13, color: c.ink[400] }}>{item.location_id ? locs[item.location_id] : 'No Location'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 16, fontWeight: '500', flexShrink: 1 }}>{item.name}</Text>
+              {item.quarters_left < 4 && <OpenedTag />}
+            </View>
+            <Text style={{ fontSize: 13, color: c.ink[400] }}>
+              {[item.location_id ? locs[item.location_id] : 'No Location', tot[item.product_id] && (tot[item.product_id].count > 1 || tot[item.product_id].units % 1 !== 0) ? `${fmtUnits(tot[item.product_id].units)} in stock` : ''].filter(Boolean).join(' · ')}
+            </Text>
           </View>
           <MiniQuarters n={item.quarters_left} />
         </Pressable>

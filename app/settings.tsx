@@ -4,8 +4,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
 import { useApp } from '../src/lib/session';
 import { confirm, notify } from '../src/lib/notify';
-import { fetchLocations, Loc } from '../src/lib/data';
-import { Text, Button, TextInput, Card, Label } from '../src/ui';
+import { fetchLocations, Loc, recategorizeAll } from '../src/lib/data';
+import { Text, Button, TextInput, Card, Label, Switch } from '../src/ui';
+import { beep, isBeepEnabled, setBeepEnabled, unlockBeep } from '../src/lib/beep';
 import { c } from '../src/theme';
 
 const describe = (l: any) => {
@@ -18,7 +19,7 @@ const describe = (l: any) => {
 
 export default function Settings() {
   const { householdId } = useApp(); const router = useRouter();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(''); const [beepOn, setBeepOn] = useState(isBeepEnabled());
   const [locs, setLocs] = useState<Loc[]>([]); const [newLoc, setNewLoc] = useState(''); const [logs, setLogs] = useState<any[]>([]);
 
   const load = useCallback(async () => {
@@ -43,6 +44,11 @@ export default function Settings() {
     if (!(await confirm(`Delete ${l.name}?`, msg))) return;
     const { error } = await supabase.from('locations').delete().eq('id', l.id);
     if (error) notify('Error', error.message); else load();
+  };
+  const resort = async () => {
+    if (!(await confirm('Re-sort all food types?', 'The AI will re-assign a food group to every product so groupings are consistent. It takes a few seconds.'))) return;
+    const r = await recategorizeAll();
+    notify(r.error ? 'Could not finish' : 'Done', r.error ?? `Updated ${r.done} products.`);
   };
   const undo = async (l: any) => {
     if (!(await confirm('Undo this action?', `${describe(l)}\nThis reverses it and removes the log entry.`))) return;
@@ -75,9 +81,19 @@ export default function Settings() {
       </Card>
 
       <Card>
+        <Label>Scanner</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Switch value={beepOn} onValueChange={v => { setBeepOn(v); setBeepEnabled(v); }} />
+          <Text style={{ flex: 1 }}>Checkout beep when a barcode is scanned</Text>
+        </View>
+        <Button tone="ghost" title="Test beep" onPress={() => { unlockBeep(); beep(true); }} />
+      </Card>
+
+      <Card>
         <Label>Shopping rules and labels</Label>
         <Button tone="ghost" title="Staples and minimum stock" onPress={() => router.push('/staples')} />
         <Button tone="ghost" title="Make a label for homemade food" onPress={() => router.push('/label')} />
+        <Button tone="ghost" title="Re-sort all food types with AI" onPress={resort} />
       </Card>
 
       <Card>

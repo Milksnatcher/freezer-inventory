@@ -58,3 +58,27 @@ export function MiniQuarters({ n }: { n: number }) {
     </View>
   );
 }
+
+export function OpenedTag() {
+  return (
+    <View style={{ backgroundColor: c.amber[50], borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: c.amber[200] }}>
+      <Text style={{ fontSize: 11, fontWeight: '600', color: c.amber[700] }}>Opened</Text>
+    </View>
+  );
+}
+
+// pill-style switcher, e.g. Location | Food type | Oldest first
+export function Segmented<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', backgroundColor: c.sage[50], borderRadius: 14, padding: 4, borderWidth: 1, borderColor: c.sage[100] }}>
+      {options.map(o => {
+        const on = o.value === value;
+        return (
+          <Pressable key={o.value} onPress={() => onChange(o.value)} style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10, backgroundColor: on ? c.sage[600] : 'transparent' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: on ? '#fff' : c.sage[700] }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Button } from 'react-native';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import type { ScannerProps } from './scannerTypes';
+import { beep } from '../lib/beep';
 
 export default function Scanner({ onBarcode, onPhoto, onCancel, hint }: ScannerProps) {
   const video = useRef<HTMLVideoElement>(null); const done = useRef(false);
@@ -12,7 +13,7 @@ export default function Scanner({ onBarcode, onPhoto, onCancel, hint }: ScannerP
   useEffect(() => {
     const reader = new BrowserMultiFormatReader(); let controls: { stop(): void } | undefined; let gone = false;
     reader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video.current!, result => {
-      if (result && !done.current) { done.current = true; cb.current(result.getText()); }
+      if (result && !done.current) { done.current = true; beep(); cb.current(result.getText()); }
     }).then(c => { if (gone) c.stop(); else controls = c; }).catch(e => setErr(String(e?.message ?? e)));
     return () => { gone = true; controls?.stop(); };
   }, []);

@@ -105,11 +105,20 @@ export async function findByLabel(code: string): Promise<{ id: string } | null> 
 // ---------- AI food-type grouping for products that have none yet ----------
 export const FOOD_CATEGORIES = ['Meat', 'Fish & Seafood', 'Vegetables', 'Fruit', 'Dairy & Eggs', 'Bread & Bakery', 'Pasta, Rice & Grains', 'Ready Meals', 'Sauces & Condiments', 'Tins & Jars', 'Snacks & Sweets', 'Drinks', 'Baking', 'Other'];
 
-export async function categorizeMissing(limit = 40): Promise<{ done: number; error?: string }> {
-  const { data: rows } = await supabase.from('products').select('id,name').is('category', null).limit(limit);
-  if (!rows?.length) return { done: 0 };
+async function distinctSubs(): Promise<string[]> {
+  const { data } = await supabase.from('products').select('subcategory').not('subcategory', 'is', null).limit(500);
+  return [...new Set((data ?? []).map((x: any) => String(x.subcategory)))].slice(0, 80);
+}
+
+async function categorizeRows(rows: { id: string; name: string }[]): Promise<{ done: number; error?: string }> {
+  if (!rows.length) return { done: 0 };
   const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
-    body: { task: 'categorize', items: { use_one_of_these_categories: FOOD_CATEGORIES, subcategory_hint: 'specific, e.g. Chicken, Beef, Mince, Salmon, Peas, Cheese', names: rows.map(r => r.name) } },
+    body: { task: 'categorize', items: {
+      use_one_of_these_categories: FOOD_CATEGORIES,
+      rules: 'Classify by what the food IS, never by storage (do not use "Frozen" as a category). Subcategory = the general type, singular, 1-2 words. Similar products MUST share the same subcategory, e.g. Chicken (also for chicken mince, breast, thighs, fillets), Beef, Pork, Lamb, Sausages, Prawns, Berries, Peas, Cheese, Pizza. Reuse a name from reuse_subcategories whenever one fits.',
+      reuse_subcategories: await distinctSubs(),
+      names: rows.map(r => r.name),
+    } },
   });
   if (error) return { done: 0, error: await errText(error) };
   let done = 0;
@@ -119,3 +128,58 @@ export async function categorizeMissing(limit = 40): Promise<{ done: number; err
   }
   return { done, error: done ? undefined : 'The AI reply could not be understood' };
 }
+
+export async function categorizeMissing(limit = 40): Promise<{ done: number; error?: string }> {
+  const { data: rows } = await supabase.from('products').select('id,name').is('category', null).limit(limit);
+  return categorizeRows(rows ?? []);
+}
+
+// Re-assign every product (50 at a time) so groupings become consistent
+export async function recategorizeAll(): Promise<{ done: number; error?: string }> {
+  const { data: all } = await supabase.from('products').select('id,name').order('name').limit(500);
+  let done = 0;
+  for (let i = 0; i < (all?.length ?? 0); i += 50) {
+    const r = await categorizeRows(all!.slice(i, i + 50));
+    if (r.error) return { done, error: r.error };
+    done += r.done;
+  }
+  return { done };
+}
+
+// Old/free-form AI categories are mapped onto the fixed list when displayed
+const ALIAS: Record<string, string> = {
+  'fish': 'Fish & Seafood', 'seafood': 'Fish & Seafood', 'fish and seafood': 'Fish & Seafood',
+  'meat': 'Meat', 'poultry': 'Meat', 'meat & poultry': 'Meat',
+  'vegetable': 'Vegetables', 'veg': 'Vegetables', 'fruits': 'Fruit',
+  'dairy': 'Dairy & Eggs', 'eggs': 'Dairy & Eggs', 'cheese': 'Dairy & Eggs',
+  'bread': 'Bread & Bakery', 'bakery': 'Bread & Bakery',
+  'pasta': 'Pasta, Rice & Grains', 'rice': 'Pasta, Rice & Grains', 'grains': 'Pasta, Rice & Grains',
+  'ready meal': 'Ready Meals', 'meals': 'Ready Meals',
+  'sauces': 'Sauces & Condiments', 'condiments': 'Sauces & Condiments', 'tinned': 'Tins & Jars',
+  'snacks': 'Snacks & Sweets', 'snacks/appetizers': 'Snacks & Sweets', 'appetizers': 'Snacks & Sweets', 'sweets': 'Snacks & Sweets', 'desserts': 'Snacks & Sweets',
+  'beverages': 'Drinks',
+};
+export function canonCategory(cat: string | null, sub: string | null): string {
+  if (!cat) return 'Uncategorised';
+  const k = cat.trim().toLowerCase();
+  const exact = FOOD_CATEGORIES.find(f => f.toLowerCase() === k); if (exact) return exact;
+  if (ALIAS[k]) return ALIAS[k];
+  if (k.includes('frozen')) {
+    const s = (sub ?? '').toLowerCase();
+    if (/fruit|berr/.test(s)) return 'Fruit';
+    if (/veg|pea|bean|corn|spinach|legume/.test(s)) return 'Vegetables';
+    if (/fish|prawn|seafood/.test(s)) return 'Fish & Seafood';
+    if (/chicken|beef|pork|lamb|sausage|meat|mince/.test(s)) return 'Meat';
+    if (/pizza|meal|pie|curry/.test(s)) return 'Ready Meals';
+    return 'Other';
+  }
+  return cat.trim();
+}
+
+// ---------- Stock totals (1.5 packs = one full + one half) ----------
+export function stockTotals(rows: { product_id: string; quarters_left: number }[]) {
+  const m: Record<string, { count: number; units: number }> = {};
+  rows.forEach(r => { const t = (m[r.product_id] ??= { count: 0, units: 0 }); t.count++; t.units += r.quarters_left / 4; });
+  return m;
+}
+export const fmtUnits = (u: number) => String(Number(u.toFixed(2)));

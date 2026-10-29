@@ -4,10 +4,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { supabase } from '../src/lib/supabase';
 import { enqueue } from '../src/lib/outbox';
-import { fetchLocations, Loc } from '../src/lib/data';
+import { canonCategory, fetchLocations, Loc } from '../src/lib/data';
 import { QuarterPie } from '../src/components/QuarterPie';
 import { useApp } from '../src/lib/session';
-import { notify } from '../src/lib/notify';
+import { confirm, notify } from '../src/lib/notify';
 import { FRESH_COLORS } from '../src/lib/freshness';
 import { Text, Button, TextInput, Card, Label, Chip } from '../src/ui';
 import { c } from '../src/theme';
@@ -29,6 +29,11 @@ export default function Item() {
 
   const quarters = mask.filter(Boolean).length;
   const days = Math.round((Date.now() - new Date(item.age_date).getTime()) / 86400000);
+  const del = async () => {
+    if (!(await confirm('Delete this item?', `${item.name} will be removed from your inventory. This can't be undone.`))) return;
+    await enqueue({ table: 'inventory_items', kind: 'delete', match: { id } });
+    router.back();
+  };
   const save = async () => {
     const data: Record<string, unknown> = {};
     if (quarters !== item.quarters_left) { data.quarters_left = quarters; data.consumed_at = quarters === 0 ? new Date().toISOString() : null; }
@@ -46,10 +51,11 @@ export default function Item() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} stickyHeaderIndices={[0]}>
+      <View style={{ backgroundColor: c.ink[50], paddingBottom: 4 }}><Button title="Save" onPress={save} /></View>
       <Card>
         <Text style={{ fontSize: 24, fontWeight: '800' }}>{item.name}</Text>
-        {(item.category || item.subcategory) && <Text style={{ color: c.ink[500] }}>{[item.category, item.subcategory].filter(Boolean).join(' › ')}</Text>}
+        {(item.category || item.subcategory) && <Text style={{ color: c.ink[500] }}>{[item.category ? canonCategory(item.category, item.subcategory) : '', item.subcategory].filter(Boolean).join(' › ')}</Text>}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: FRESH_COLORS[item.freshness as 'green' | 'amber' | 'red'] }} />
           <Text style={{ color: c.ink[500] }}>{FRESH_LABEL[item.freshness as 'green' | 'amber' | 'red']} · {days} day{days === 1 ? '' : 's'} in storage</Text>
@@ -79,6 +85,7 @@ export default function Item() {
         <TextInput value={age} onChangeText={setAge} />
       </Card>
       <Button title="Save" onPress={save} />
+      <Button tone="clay" title="Delete this item" onPress={del} />
     </ScrollView>
   );
 }

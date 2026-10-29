@@ -5,6 +5,7 @@ import { useApp } from '../src/lib/session';
 import { addItems, aiDebug, fetchLocations, searchProducts, resolveBarcode, resolvePhoto, Loc, Product } from '../src/lib/data';
 import { notify } from '../src/lib/notify';
 import Scanner from '../src/components/Scanner';
+import { unlockBeep } from '../src/lib/beep';
 import { Text, Button, TextInput, Card, Label, Chip } from '../src/ui';
 import { c } from '../src/theme';
 
@@ -48,7 +49,7 @@ export default function Add() {
           <Chip label="No Location" on={locId === null} onPress={() => setLocId(null)} />
         </View>
       </Card>
-      <Button tone="sky" title="Scan barcode / photo of label" onPress={() => setScanning(true)} />
+      <Button tone="sky" title="Scan barcode / photo of label" onPress={() => { unlockBeep(); setScanning(true); }} />
       <Card>
         <Label>Item</Label>
         <TextInput placeholder="e.g. Frozen peas" value={name} onChangeText={t => { setName(t); setPicked(null); }} style={{ fontSize: 18 }} />

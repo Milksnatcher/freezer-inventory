@@ -2,17 +2,28 @@ import React, { useCallback, useRef, useState } from 'react';
 import { SectionList, View, Pressable } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
-import { categorizeMissing, fetchLocations } from '../src/lib/data';
+import { canonCategory, categorizeMissing, fetchLocations, fmtUnits, FOOD_CATEGORIES, stockTotals } from '../src/lib/data';
 import { FRESH_COLORS } from '../src/lib/freshness';
-import { Text, TextInput, Switch, Label, MiniQuarters, Button } from '../src/ui';
+import { Text, TextInput, Label, MiniQuarters, Button, OpenedTag, Segmented } from '../src/ui';
 import { c, shadow } from '../src/theme';
 
-type Row = { id: string; name: string; quarters_left: number; freshness: 'green' | 'amber' | 'red'; location_id: string | null; category: string | null; subcategory: string | null };
+type Row = { id: string; product_id: string; age_date: string; name: string; quarters_left: number; freshness: 'green' | 'amber' | 'red'; location_id: string | null; category: string | null; subcategory: string | null };
+const fmtAge = (iso: string) => {
+  const d = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86400000));
+  if (d < 14) return `${d} day${d === 1 ? '' : 's'}`;
+  if (d < 60) return `${Math.round(d / 7)} weeks`;
+  const m = d / 30.44;
+  return m < 24 ? `${Math.round(m)} months` : `${(m / 12).toFixed(1)} years`;
+};
+type Mode = 'location' | 'type' | 'age';
+const AGE_LABEL = { red: 'Over 6 months', amber: '2–6 months', green: 'Under 2 months' } as const;
+const AGE_ORDER = ['Over 6 months', '2–6 months', 'Under 2 months'];
+const order = (t: string) => { const i = FOOD_CATEGORIES.indexOf(t); return i === -1 ? (t === 'Uncategorised' ? 999 : 500) : i; };
 
 export default function Inventory() {
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([]); const [locs, setLocs] = useState<Record<string, string>>({});
-  const [byType, setByType] = useState(false); const [q, setQ] = useState('');
+  const [mode, setMode] = useState<Mode>('location'); const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false); const [catMsg, setCatMsg] = useState(''); const tried = useRef(false);
 
   const loadRows = useCallback(async (): Promise<Row[]> => {
@@ -37,19 +48,36 @@ export default function Inventory() {
     return () => { supabase.removeChannel(ch); };
   }, [loadRows, runCat]));
 
+  const cat = (r: Row) => canonCategory(r.category, r.subcategory);
+  const place = (r: Row) => (r.location_id ? locs[r.location_id] ?? '?' : 'No Location');
+  const tot = stockTotals(rows);
+  const subline = (r: Row) => {
+    const t = tot[r.product_id];
+    const total = t && (t.count > 1 || t.units % 1 !== 0) ? `${fmtUnits(t.units)} in stock` : '';
+    if (mode === 'age') return [`${fmtAge(r.age_date)} old`, place(r), r.subcategory, total].filter(Boolean).join(' · ');
+    if (mode === 'type') return [r.subcategory, place(r), total].filter(Boolean).join(' · ');
+    return [[r.category ? cat(r) : '', r.subcategory].filter(Boolean).join(' › '), total].filter(Boolean).join(' · ');
+  };
+
   const needle = q.toLowerCase();
   const missing = rows.filter(r => !r.category).length;
   const groups: Record<string, Row[]> = {};
-  rows.filter(r => [r.name, r.category, r.subcategory].filter(Boolean).join(' ').toLowerCase().includes(needle)).forEach(r => {
-    const k = byType ? [r.category ?? 'Uncategorised', r.subcategory].filter(Boolean).join(' › ') : r.location_id ? locs[r.location_id] ?? '?' : 'No Location';
-    (groups[k] ??= []).push(r);
+  rows.filter(r => [r.name, r.category ? cat(r) : '', r.subcategory].filter(Boolean).join(' ').toLowerCase().includes(needle)).forEach(r => {
+    (groups[mode === 'type' ? cat(r) : mode === 'age' ? AGE_LABEL[r.freshness] : place(r)] ??= []).push(r);
   });
-  const sections = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([title, data]) => ({ title, data }));
+  const oldestFirst = (x: Row, y: Row) => +new Date(x.age_date) - +new Date(y.age_date);
+  const sections = Object.entries(groups)
+    .sort(([a], [b]) => mode === 'type' ? order(a) - order(b) || a.localeCompare(b) : mode === 'age' ? AGE_ORDER.indexOf(a) - AGE_ORDER.indexOf(b) : a.localeCompare(b))
+    .map(([title, data]) => ({
+      title,
+      data: mode === 'type' ? [...data].sort((x, y) => (x.subcategory ?? '').localeCompare(y.subcategory ?? '') || x.name.localeCompare(y.name)) : mode === 'age' ? [...data].sort(oldestFirst) : data,
+    }));
+
   return (
     <View style={{ flex: 1, paddingHorizontal: 16 }}>
       <TextInput placeholder="Search name, food type or group (e.g. meat)…" value={q} onChangeText={setQ} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 10 }}>
-        <Switch value={byType} onValueChange={setByType} /><Text style={{ color: c.ink[500] }}>Group by food type</Text>
+      <View style={{ marginVertical: 10 }}>
+        <Segmented<Mode> value={mode} onChange={setMode} options={[{ value: 'location', label: 'Location' }, { value: 'type', label: 'Food type' }, { value: 'age', label: 'Oldest first' }]} />
       </View>
       {missing > 0 && (
         <View style={{ marginBottom: 8, gap: 6 }}>
@@ -65,12 +93,11 @@ export default function Inventory() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 8, ...shadow.soft }}>
             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: FRESH_COLORS[item.freshness] }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '500' }}>{item.name}</Text>
-              {(item.category || (byType && item.location_id)) ? (
-                <Text style={{ fontSize: 12, color: c.ink[400] }}>
-                  {byType ? (item.location_id ? locs[item.location_id] : 'No Location') : [item.category, item.subcategory].filter(Boolean).join(' › ')}
-                </Text>
-              ) : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', flexShrink: 1 }}>{item.name}</Text>
+                {item.quarters_left < 4 && <OpenedTag />}
+              </View>
+              <Text style={{ fontSize: 12, color: c.ink[400] }}>{subline(item)}</Text>
             </View>
             <MiniQuarters n={item.quarters_left} />
           </Pressable>
